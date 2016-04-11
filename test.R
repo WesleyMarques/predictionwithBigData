@@ -1,30 +1,28 @@
-library(SparkR, lib.loc = "/usr/local/spark/R/lib")
-library(dplyr)
 library(ggplot2)
+library(SparkR, lib.loc = "/usr/local/spark/R/lib")
+
 sc <- sparkR.init(master = "", appName = "SparkR",
             sparkHome = "/usr/local/spark", sparkEnvir = list(),
             sparkExecutorEnv = list(), sparkJars = "", sparkPackages = "")
 sqlContext <- sparkRSQL.init(sc)
 people <- read.df(sqlContext, "workspaceR/predictionwithBigData/data/dados_2.json", "json")
 #
-head(people)
-people <- orderBy(people, "DTHR", "COD_LINHA", "VEIC")
-head(people)
 people <- withColumn(people, "DIST", people$LON*0)
 people <- withColumn(people, "TIME", people$LON*0)
-
-aux <- collect(people)
-
-
-aux <- transform(aux,COD_LINHA = as.integer(COD_LINHA),DTHR = as.POSIXct(DTHR, format = "%d/%m/%Y %H:%M:%S"), DIST = as.numeric(DIST), TIME = as.numeric(TIME), LAT = as.numeric(gsub( ",", ".", aux$LAT)), LON = as.numeric(gsub( ",", ".", aux$LON)))
-
-aux <- arrange(aux, COD_LINHA, VEIC, DTHR)
+people <- SparkR::arrange(people, asc(people$COD_LINHA), asc(people$VEIC), asc(people$DTHR))
 
 
-setDistAndTime()
+
+aux <-collect(people)
+
+aux <-transform(aux,COD_LINHA = as.integer(COD_LINHA),DTHR = as.POSIXct(DTHR, format = "%d/%m/%Y %H:%M:%S"), DIST = as.numeric(DIST), TIME = as.numeric(TIME), LAT = as.numeric(gsub( ",", ".", aux$LAT)), LON = as.numeric(gsub( ",", ".", aux$LON)))
+
+
+
+aux<-setDistAndTime()
 
 summary(aux)
-boxplot(aux$VEIC, aux$DIST)
+
 
 dist_pontos <- function(x1,y1,x2,y2){
   return(sqrt((((x2-x1)**2)+((y2-y1)**2))))
@@ -59,6 +57,7 @@ setDistAndTime <- function(){
       reset <- FALSE
     }
   }
+  return(aux)
 }
 
 
